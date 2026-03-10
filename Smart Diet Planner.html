@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Smart Diet Planner</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<style>
+
+body{
+font-family:Segoe UI;
+background:linear-gradient(120deg,#74ebd5,#9face6);
+margin:0;
+}
+
+.container{
+width:600px;
+margin:40px auto;
+background:white;
+padding:25px;
+border-radius:12px;
+box-shadow:0 6px 15px rgba(0,0,0,0.2);
+}
+
+h1,h2{
+text-align:center;
+color:#2c3e50;
+}
+
+input,select{
+width:100%;
+padding:10px;
+margin:8px 0;
+border-radius:6px;
+border:1px solid #ccc;
+}
+
+button{
+background:#6c5ce7;
+color:white;
+border:none;
+padding:12px;
+width:100%;
+border-radius:6px;
+cursor:pointer;
+font-size:15px;
+}
+
+button:hover{
+background:#4834d4;
+}
+
+.page{display:none;}
+.active{display:block;}
+
+.progress{
+width:100%;
+background:#ddd;
+height:20px;
+border-radius:10px;
+}
+
+#progressBar{
+height:20px;
+width:0%;
+border-radius:10px;
+}
+
+.meal{
+display:flex;
+justify-content:space-between;
+border-bottom:1px solid #eee;
+padding:6px;
+}
+
+.card{
+background:#f1f2f6;
+padding:15px;
+border-radius:8px;
+margin-top:10px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div id="registerPage" class="page active">
+
+<h1>Smart Diet Planning and Tracking System</h1>
+<h2>Create Account</h2>
+
+<input type="text" id="regUser" placeholder="Username">
+<input type="password" id="regPass" placeholder="Password">
+
+<button onclick="register()">Register</button>
+
+<br><br>
+
+<button onclick="showPage('loginPage')">Go to Login</button>
+
+</div>
+
+<div id="loginPage" class="page">
+
+<h2>Login</h2>
+
+<input type="text" id="loginUser" placeholder="Username">
+<input type="password" id="loginPass" placeholder="Password">
+
+<button onclick="login()">Login</button>
+
+</div>
+
+<div id="detailsPage" class="page">
+
+<h2>Personal Details</h2>
+
+<input type="number" id="weight" placeholder="Weight (kg)">
+<input type="number" id="height" placeholder="Height (cm)">
+<input type="number" id="age" placeholder="Age">
+
+<select id="gender">
+<option value="male">Male</option>
+<option value="female">Female</option>
+</select>
+
+<select id="activity">
+<option value="1.2">Sedentary</option>
+<option value="1.375">Light Activity</option>
+<option value="1.55">Moderate Activity</option>
+</select>
+
+<button onclick="calculateCalories()">Continue</button>
+
+<div id="bmiResult" style="text-align:center;margin-top:10px;font-weight:bold;"></div>
+
+</div>
+
+<div id="mealPage" class="page">
+
+<h2>Log Meals</h2>
+
+<input type="text" id="mealName" placeholder="Meal Name">
+
+<select id="mealType">
+<option>Breakfast</option>
+<option>Lunch</option>
+<option>Dinner</option>
+<option>Snack</option>
+</select>
+
+<select id="mealDay">
+<option value="0">Sunday</option>
+<option value="1">Monday</option>
+<option value="2">Tuesday</option>
+<option value="3">Wednesday</option>
+<option value="4">Thursday</option>
+<option value="5">Friday</option>
+<option value="6">Saturday</option>
+</select>
+
+<input type="number" id="mealCalories" placeholder="Calories">
+
+<button onclick="addMeal()">Add Meal</button>
+
+<div id="mealList"></div>
+
+<div class="card">
+
+Total Consumed: <b id="total">0</b> kcal
+
+<div class="progress">
+<div id="progressBar"></div>
+</div>
+
+</div>
+
+<br>
+
+<button onclick="showPage('weeklyPage');updateChart();updatePieChart()">Weekly Report</button>
+
+</div>
+
+<div id="weeklyPage" class="page">
+
+<h2>Weekly Calories</h2>
+
+<canvas id="chart"></canvas>
+
+<h2>Meal Distribution</h2>
+
+<canvas id="pieChart"></canvas>
+
+<br>
+
+<button onclick="showPage('mealPage')">Back</button>
+
+</div>
+
+</div>
+
+<script>
+
+let totalCalories=0
+let meals=[]
+let chart
+
+function showPage(page){
+
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"))
+document.getElementById(page).classList.add("active")
+
+}
+
+function register(){
+
+let user=document.getElementById("regUser").value
+let pass=document.getElementById("regPass").value
+
+localStorage.setItem("user_"+user,pass)
+
+alert("Registration successful")
+
+showPage("loginPage")
+
+}
+
+function login(){
+
+let user=document.getElementById("loginUser").value
+let pass=document.getElementById("loginPass").value
+
+let stored=localStorage.getItem("user_"+user)
+
+if(stored===pass){
+
+localStorage.setItem("currentUser",user)
+showPage("detailsPage")
+
+}else{
+
+alert("Invalid login")
+
+}
+
+}
+
+function calculateCalories(){
+
+let w=document.getElementById("weight").value
+let h=document.getElementById("height").value
+
+let heightMeters=h/100
+let bmi=(w/(heightMeters*heightMeters)).toFixed(1)
+
+let status=""
+
+if(bmi<18.5) status="Underweight"
+else if(bmi<25) status="Normal"
+else if(bmi<30) status="Overweight"
+else status="Obese"
+
+document.getElementById("bmiResult").innerHTML="BMI: "+bmi+" ("+status+")"
+
+showPage("mealPage")
+
+}
+
+function addMeal(){
+
+let name=document.getElementById("mealName").value
+let type=document.getElementById("mealType").value
+let cal=parseInt(document.getElementById("mealCalories").value)
+let today=parseInt(document.getElementById("mealDay").value)
+
+if(!cal) return
+
+meals.push({name,type,cal,day:today})
+
+totalCalories+=cal
+
+let div=document.createElement("div")
+div.className="meal"
+
+div.innerHTML=type+" - "+name+" <span>"+cal+" kcal</span>"
+
+document.getElementById("mealList").appendChild(div)
+
+document.getElementById("total").innerText=totalCalories
+
+updateProgress()
+
+}
+
+function updateProgress(){
+
+let limit = 1000
+let percent = (totalCalories / limit) * 100
+
+if(percent > 100) percent = 100
+
+document.getElementById("progressBar").style.width = percent + "%"
+
+}
+
+function getWeeklyData(){
+
+let days=[0,0,0,0,0,0,0]
+
+meals.forEach(m=>{
+days[m.day]+=m.cal
+})
+
+return days
+
+}
+
+function updateChart(){
+
+let data=getWeeklyData()
+
+if(chart) chart.destroy()
+
+const ctx=document.getElementById("chart")
+
+chart=new Chart(ctx,{
+type:"bar",
+data:{
+labels:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
+datasets:[
+{
+label:"Calories Consumed",
+data:data,
+backgroundColor:"rgba(108,92,231,0.8)",
+backgroundColor:"#6c5ce7"
+}
+]
+},
+options:{
+scales:{
+y:{
+beginAtZero:true,
+max:2000
+}
+}
+}
+})
+
+}
+
+function updatePieChart(){
+
+let breakfast=0
+let lunch=0
+let dinner=0
+let snack=0
+
+meals.forEach(m=>{
+
+if(m.type=="Breakfast") breakfast+=m.cal
+if(m.type=="Lunch") lunch+=m.cal
+if(m.type=="Dinner") dinner+=m.cal
+if(m.type=="Snack") snack+=m.cal
+
+})
+
+const ctx=document.getElementById("pieChart")
+
+new Chart(ctx,{
+type:"pie",
+data:{
+labels:["Breakfast","Lunch","Dinner","Snack"],
+datasets:[{
+data:[breakfast,lunch,dinner,snack],
+backgroundColor:["#74b9ff","#55efc4","#ffeaa7","#ff7675"]
+}]
+}
+})
+
+}
+
+</script>
+
+</body>
+</html>
